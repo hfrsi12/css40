@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>موقع الاستثمار</title>
+    <link rel="stylesheet" href="./style.css">
+
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+   
+    <script>
+
+
+
+        $(document).ready(function() {
+            $('#register-button').click(function() {
+                var username = $('#username').val();
+                var email = $('#email').val();
+                $.post('auth.php', { action: 'register', username: username, email: email }, function(response) {
+                    alert(response.message);
+                    if (response.success) {
+                        location.reload();
+                    }
+                }, 'json');
+            });
+
+            $('#login-button').click(function() {
+                var username = $('#username').val();
+                $.post('auth.php', { action: 'login', username: username }, function(response) {
+                    alert(response.message);
+                    if (response.success) {
+                        location.reload();
+                    }
+                }, 'json');
+            });
+
+            $.get('session.php', function(response) {
+                if (response.loggedIn) {
+                    $('#login-section').hide();
+                    $('#main-content').show();
+                    $('#user-balance').text(response.balance.toFixed(2));
+                } else {
+                    $('#login-section').show();
+                }
+            }, 'json');
+
+            $('#logout-button').click(function() {
+                $.post('logout.php', function() {
+                    location.reload();
+                });
+            });
+        });
+
+        function showNotification(plan, price, dailyProfit) {
+            $.post('activatePlan.php', { plan: plan, price: price, dailyProfit: dailyProfit }, function(response) {
+                if (response.success) {
+                    alert('تم تفعيل الخطة بنجاح!');
+                    location.reload();
+                } else {
+                    alert(response.message);
+                }
+            }, 'json');
+        }
+
+        function depositFunds(amount, trc20Address) {
+            $.post('deposit.php', { amount: amount, trc20Address: trc20Address }, function(response) {
+                alert(response.message);
+            }, 'json');
+        }
+
+        function claimDailyProfit(plan, dailyProfit) {
+            $.post('claimProfit.php', { plan: plan, dailyProfit: dailyProfit }, function(response) {
+                alert(response.message);
+                if (response.success) {
+                    location.reload();
+                }
+            }, 'json');
+        }
+
+
+
+
+
+
+
+var currentUser = localStorage.getItem('currentUser');
+        var users = JSON.parse(localStorage.getItem('users')) || {};
+
+        if (currentUser && users[currentUser]) {
+            var user = users[currentUser];
+        } else {
+            var user = {
+                balance: 0.00,
+                activatedPlans: {},
+                pendingDeposits: []
+            };
+        }
+
+        function saveUserState() {
+            users[currentUser] = user;
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        function registerUser(username) {
+            if (users[username]) {
+                alert('اسم المستخدم موجود بالفعل.');
+                return;
+            }
+            currentUser = username;
+            user = {
+                balance: 0.00,
+                activatedPlans: {},
+                pendingDeposits: []
+            };
+            users[currentUser] = user;
+            localStorage.setItem('currentUser', currentUser);
+            saveUserState();
+            alert('تم التسجيل بنجاح!');
+        }
+
+        function loginUser(username) {
+            if (!users[username]) {
+                alert('اسم المستخدم غير موجود.');
+                return;
+            }
+            currentUser = username;
+            user = users[currentUser];
+            localStorage.setItem('currentUser', currentUser);
+            alert('تم تسجيل الدخول بنجاح!');
+            updatePlanButtons();
+        }
+
+        function logoutUser() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            alert('تم تسجيل الخروج بنجاح!');
+        }
+
+        function showNotification(plan, price, dailyProfit) {
+            if (!currentUser) {
+                alert('يجب عليك تسجيل الدخول لتفعيل خطة.');
+                return;
+            }
+
+            if (user.activatedPlans[plan]) {
+                alert('تم تفعيل هذه الخطة بالفعل.');
+                return;
+            }
+
+            var notification = document.getElementById('notification');
+            notification.style.display = 'block';
+            document.getElementById('notification-message').textContent = 'هل تريد تفعيل خطة ' + plan + ' بقيمة $' + price + '؟';
+
+            document.getElementById('confirm-button').onclick = function() {
+                if (user.balance >= price) {
+                    user.balance -= price;
+                    alert('تم تفعيل الخطة. المتبقي في رصيدك: $' + user.balance.toFixed(2));
+
+                    var activationDate = new Date();
+                    var expirationDate = new Date();
+                    expirationDate.setDate(activationDate.getDate() + 30);
+
+                    user.activatedPlans[plan] = {
+                        price: price,
+                        dailyProfit: dailyProfit,
+                        activatedAt: activationDate.getTime(),
+                        expiresAt: expirationDate.getTime()
+                    };
+
+                    saveUserState();
+
+                    updatePlanButtons();
+
+                    setTimeout(function() {
+                        alert('انتهت فترة 24 ساعة. سيتم إضافة الربح اليومي: $' + dailyProfit);
+                        user.balance += dailyProfit;
+                        alert('تمت إضافة الربح اليومي. الرصيد الحالي: $' + user.balance.toFixed(2));
+                        saveUserState();
+                    }, 24 * 60 * 60 * 1000);
+                } else {
+                    alert('عذرًا، رصيدك الحالي غير كافٍ لتفعيل هذه الخطة. يرجى إيداع المزيد من الأموال للمتابعة.');
+                }
+                hideNotification();
+            };
+        }
+
+        function hideNotification() {
+            var notification = document.getElementById('notification');
+            notification.style.display = 'none';
+        }
+
+        function depositFunds(amount, trc20Address) {
+            if (!currentUser) {
+                alert('يجب عليك تسجيل الدخول لإيداع الأموال.');
+                return;
+            }
+
+            user.pendingDeposits.push({
+                amount: amount,
+                trc20Address: trc20Address,
+                confirmed: false
+            });
+
+            alert('تم تقديم طلب الإيداع بنجاح. يرجى تحويل المبلغ إلى عنوان TRC-20 المحدد.');
+            saveUserState();
+        }
+
+        function updatePlanButtons() {
+            var currentTime = new Date().getTime();
+
+            for (var plan in user.activatedPlans) {
+                if (user.activatedPlans.hasOwnProperty(plan)) {
+                    var planData = user.activatedPlans[plan];
+                    if (planData.expiresAt > currentTime) {
+                        var button = document.querySelector('#' + plan.toLowerCase() + ' button');
+                        if (button) {
+                            button.disabled = true;
+                            button.textContent = 'تم التفعيل';
+                        }
+                        var lockIcon = document.getElementById('lock-' + plan.toLowerCase());
+                        if (lockIcon) {
+                            lockIcon.style.display = 'none';
+                        }
+                    } else {
+                        delete user.activatedPlans[plan];
+                        saveUserState();
+                    }
+                }
+            }
+        }
+
+        window.onload = function() {
+            var loginSection = document.getElementById('login-section');
+            loginSection.style.display = 'block';
+
+            document.getElementById('login-button').onclick = function() {
+                var username = document.getElementById('username').value;
+                loginUser(username);
+                if (currentUser) {
+                    loginSection.style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                }
+            };
+
+            document.getElementById('register-button').onclick = function() {
+                var username = document.getElementById('username').value;
+                registerUser(username);
+                if (currentUser) {
+                    loginSection.style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                }
+            };
+
+            if (currentUser) {
+                loginSection.style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+                updatePlanButtons();
+            }
+
+            document.getElementById('logout-button').onclick = function() {
+                logoutUser();
+                location.reload();
+            };
+
+            document.getElementById('scroll-to-deposit').onclick = function() {
+                document.getElementById('deposit').scrollIntoView({ behavior: 'smooth' });
+            };
+        };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        var currentUser = localStorage.getItem('currentUser');
+        var users = JSON.parse(localStorage.getItem('users')) || {};
+
+        if (currentUser && users[currentUser]) {
+            var user = users[currentUser];
+        } else {
+            var user = {
+                balance: 0.00,
+                activatedPlans: {},
+                pendingDeposits: []
+            };
+        }
+
+        function saveUserState() {
+            users[currentUser] = user;
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        function registerUser(username) {
+            if (users[username]) {
+                alert('اسم المستخدم موجود بالفعل.');
+                return;
+            }
+            currentUser = username;
+            user = {
+                balance: 0.00,
+                activatedPlans: {},
+                pendingDeposits: []
+            };
+            users[currentUser] = user;
+            localStorage.setItem('currentUser', currentUser);
+            saveUserState();
+            alert('تم التسجيل بنجاح!');
+        }
+
+        function loginUser(username) {
+            if (!users[username]) {
+                alert('اسم المستخدم غير موجود.');
+                return;
+            }
+            currentUser = username;
+            user = users[currentUser];
+            localStorage.setItem('currentUser', currentUser);
+            alert('تم تسجيل الدخول بنجاح!');
+            updatePlanButtons();
+        }
+
+        function logoutUser() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            alert('تم تسجيل الخروج بنجاح!');
+        }
+
+        function showNotification(plan, price, dailyProfit) {
+            if (!currentUser) {
+                alert('يجب عليك تسجيل الدخول لتفعيل خطة.');
+                return;
+            }
+
+            if (user.activatedPlans[plan]) {
+                alert('تم تفعيل هذه الخطة بالفعل.');
+                return;
+            }
+
+            var notification = document.getElementById('notification');
+            notification.style.display = 'block';
+            document.getElementById('notification-message').textContent = 'هل تريد تفعيل خطة ' + plan + ' بقيمة $' + price + '؟';
+
+            document.getElementById('confirm-button').onclick = function() {
+                if (user.balance >= price) {
+                    user.balance -= price;
+                    alert('تم تفعيل الخطة. المتبقي في رصيدك: $' + user.balance.toFixed(2));
+
+                    var activationDate = new Date();
+                    var expirationDate = new Date();
+                    expirationDate.setDate(activationDate.getDate() + 30);
+
+                    user.activatedPlans[plan] = {
+                        price: price,
+                        dailyProfit: dailyProfit,
+                        activatedAt: activationDate.getTime(),
+                        expiresAt: expirationDate.getTime()
+                    };
+
+                    saveUserState();
+
+                    updatePlanButtons();
+                } else {
+                    alert('عذرًا، رصيدك الحالي غير كافٍ لتفعيل هذه الخطة. يرجى إيداع المزيد من الأموال للمتابعة.');
+                }
+                hideNotification();
+            };
+        }
+
+        function hideNotification() {
+            var notification = document.getElementById('notification');
+            notification.style.display = 'none';
+        }
+
+        function claimDailyProfit(plan, dailyProfit) {
+            if (!user.activatedPlans[plan]) {
+                alert('هذه الخطة غير مفعلة.');
+                return;
+            }
+
+            var lastClaimedAt = user.activatedPlans[plan].lastClaimedAt || user.activatedPlans[plan].activatedAt;
+            var currentTime = new Date().getTime();
+
+            if (currentTime - lastClaimedAt >= 24 * 60 * 60 * 1000) {
+                user.balance += dailyProfit;
+                user.activatedPlans[plan].lastClaimedAt = currentTime;
+                saveUserState();
+                alert('تم جمع الأرباح بنجاح. الرصيد الحالي: $' + user.balance.toFixed(2));
+            } else {
+                alert('لم تمر 24 ساعة بعد منذ آخر جمع للأرباح.');
+            }
+        }
+
+        function updatePlanButtons() {
+            var currentTime = new Date().getTime();
+
+            for (var plan in user.activatedPlans) {
+                if (user.activatedPlans.hasOwnProperty(plan)) {
+                    var planData = user.activatedPlans[plan];
+                    if (planData.expiresAt > currentTime) {
+                        var button = document.querySelector('#' + plan.toLowerCase() + ' button');
+                        if (button) {
+                            button.disabled = true;
+                            button.textContent = 'تم التفعيل';
+                        }
+                        var lockIcon = document.getElementById('lock-' + plan.toLowerCase());
+                        if (lockIcon) {
+                            lockIcon.style.display = 'none';
+                        }
+                    } else {
+                        delete user.activatedPlans[plan];
+                        saveUserState();
+                    }
+                }
+            }
+        }
+
+        window.onload = function() {
+            var loginSection = document.getElementById('login-section');
+            loginSection.style.display = 'block';
+
+            document.getElementById('login-button').onclick = function() {
+                var username = document.getElementById('username').value;
+                loginUser(username);
+                if (currentUser) {
+                    loginSection.style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    document.getElementById('user-balance').textContent = user.balance.toFixed(2);
+                }
+            };
+
+            document.getElementById('register-button').onclick = function() {
+                var username = document.getElementById('username').value;
+                registerUser(username);
+                if (currentUser) {
+                    loginSection.style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    document.getElementById('user-balance').textContent = user.balance.toFixed(2);
+                }
+            };
+
+            if (currentUser) {
+                loginSection.style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+                document.getElementById('user-balance').textContent = user.balance.toFixed(2);
+                updatePlanButtons();
+            }
+
+            document.getElementById('logout-button').onclick = function() {
+                logoutUser();
+                location.reload();
+            };
+
+            document.getElementById('scroll-to-deposit').onclick = function() {
+                document.getElementById('deposit').scrollIntoView({ behavior: 'smooth' });
+            };
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <div id="navbar">
+            <img src="./USDT/coollogo_com-6418786.png" alt="لوجو الموقع">
+            <nav>
+                <ul>
+                    <li><a href="indexss.html">الرئيسية</a></li>
+                    <li><a href="اتصل.html">اتصل بنا</a></li>
+                    <li><a href="عروض.html">عروض الاستثمار</a></li>
+                    <li><a href="السحب.html">السحب</a></li>
+
+                    <li>الرصيد الحالي: <span id="user-balance">0.00</span> $</li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+
+    <div id="login-section" style="display: none;">
+        <h2>تسجيل الدخول أو التسجيل</h2>
+        <input type="text" id="username" placeholder="أدخل اسم المستخدم">
+        <input type="email" id="email" placeholder="أدخل البريد الإلكتروني">
+        <button id="login-button">تسجيل الدخول</button>
+        <button id="register-button">تسجيل جديد</button>
+    </div>
+    <main id="main-content" style="display: none;">
+        <section id="hero">
+            <h2>مرحبا بكم في موقع الاستثمار</h2>
+            <h1>استثمر بأمان وثقة.</h1>
+            <button id="logout-button">تسجيل الخروج</button>
+
+            <button onclick="location.href='عروض.html'">عروض الاستثمار</button>
+            <button id="scroll-to-deposit"> إيداع الأموال  </button>
+
+        </section>
+
+
+        <div class="plan" id="vip1">
+            <h3>VIP1</h3>
+            <p>عدد المهام اليومية: 1</p>
+            <p>الربح اليومي: $1.50</p>
+            <p>السعر: $10.00</p>
+            <button onclick="showNotification('VIP1', 10.00, 1.50)">انضم الآن</button>
+            <span class="lock" id="lock-vip1">🔒</span>
+            <button class="claim-profit-btn" onclick="claimDailyProfit('VIP1', 1.50)">جمع الأرباح</button>
+        </div>
+        
+        <div class="plan" id="vip2">
+            <h3>VIP2</h3>
+            <p>عدد المهام اليومية: 1</p>
+            <p>الربح اليومي: $3.00</p>
+            <p>السعر: $30.00</p>
+            <button onclick="showNotification('VIP2', 30.00, 3.00)">انضم الآن</button>
+            <span class="lock" id="lock-vip2">🔒</span>
+            <button class="claim-profit-btn" onclick="claimDailyProfit('VIP2', 3.00)">جمع الأرباح</button>
+        </div>
+
+        <div class="plan" id="vip3">
+            <h3>VIP3</h3>
+            <p>عدد المهام اليومية: 1</p>
+            <p>الربح اليومي: $6.00</p>
+            <p>السعر: $50.00</p>
+            <button onclick="showNotification('VIP3', 50.00, 6.00)">انضم الآن</button>
+            <span class="lock" id="lock-vip3">🔒</span>
+            <button class="claim-profit-btn" onclick="claimDailyProfit('VIP3', 6.00)">جمع الأرباح</button>
+        </div>
+
+        <!-- ... العروض 4 إلى 20 (تم حفظ الفراغ للمرونة) -->
+
+<div class="plan" id="vip4">
+    <h3>VIP4</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $8.00</p>
+    <p>السعر: $80.00</p>
+    <button onclick="showNotification('VIP4', 80.00, 8.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip4">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP4', 8.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip5">
+    <h3>VIP5</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $12.00</p>
+    <p>السعر: $120.00</p>
+    <button onclick="showNotification('VIP5', 120.00, 12.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip5">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP5', 12.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip6">
+    <h3>VIP6</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $28.00</p>
+    <p>السعر: $280.00</p>
+    <button onclick="showNotification('VIP6', 280.00, 28.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip6">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP6', 28.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip7">
+    <h3>VIP7</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $52.00</p>
+    <p>السعر: $500.00</p>
+    <button onclick="showNotification('VIP7', 500.00, 52.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip7">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP7', 52.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip8">
+    <h3>VIP8</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $109.00</p>
+    <p>السعر: $1,000.00</p>
+    <button onclick="showNotification('VIP8', 1000.00, 109.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip8">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP8', 109.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip9">
+    <h3>VIP9</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $333.00</p>
+    <p>السعر: $3,000.00</p>
+    <button onclick="showNotification('VIP9', 3000.00, 333.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip9">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP9', 333.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip10">
+    <h3>VIP10</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $705.00</p>
+    <p>السعر: $6,000.00</p>
+    <button onclick="showNotification('VIP10', 6000.00, 705.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip10">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP10', 705.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip11">
+    <h3>VIP11</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $1,058.00</p>
+    <p>السعر: $9,000.00</p>
+    <button onclick="showNotification('VIP11', 9000.00, 1058.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip11">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP11', 1058.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip12">
+    <h3>VIP12</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $1,625.00</p>
+    <p>السعر: $13,000.00</p>
+    <button onclick="showNotification('VIP12', 13000.00, 1625.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip12">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP12', 1625.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip13">
+    <h3>VIP13</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $2,133.00</p>
+    <p>السعر: $16,000.00</p>
+    <button onclick="showNotification('VIP13', 16000.00, 2133.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip13">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP13', 2133.00)">جمع الأرباح</button>
+</div>
+
+<div class="plan" id="vip14">
+    <h3>VIP14</h3>
+    <p>عدد المهام اليومية: 1</p>
+    <p>الربح اليومي: $2,545.00</p>
+    <p>السعر: $19,000.00</p>
+    <button onclick="showNotification('VIP14', 19000.00, 2545.00)">انضم الآن</button>
+    <span class="lock" id="lock-vip14">🔒</span>
+    <button class="claim-profit-btn" onclick="claimDailyProfit('VIP14', 2545.00)">جمع الأرباح</button>
+</div>
+
+
+
+
+
+
+
+
+
+<section id="deposit">
+    <h2>الإيداع</h2>
+    <p>يرجى تحويل الأموال إلى عنوان TRC-20 التالي:</p>
+    <p><strong>TESpg5qYJ3nzM1cU1UNm4p8Zu1q6qizRws (بعد التحويل انتظر 10دقايق)</strong></p>
+    <input type="number" id="deposit-amount" placeholder="أدخل المبلغ">
+    <input type="text" id="trc20-address" placeholder="أدخل عنوان TRC-20 الخاص بك">
+    <button onclick="depositFunds(document.getElementById('deposit-amount').value, document.getElementById('trc20-address').value)">إيداع</button>
+</section>
+
+
+
+
+
+
+
+
+
+        <div id="notification" style="display: none;">
+            <p id="notification-message"></p>
+            <button id="confirm-button">تأكيد</button>
+            <button onclick="hideNotification()">إلغاء</button>
+        </div>
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
+    </main>
+
+    <script src="./script.js"></script>
+
+
+
+        
+
+
+
+
+
+
+
+
+</body>
+
+</script>
+
+   
+
+</html>

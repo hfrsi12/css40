@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>موقع الاستثمار</title>
+    <link rel="icon" href="./USDT/index-recharge-icon2-5b8127ee.png">
+    <link rel="stylesheet" href="./style.css">
+
+    
+</head>
+
+
+
+
+<body>
+    <!--Header Start-->
+    <header>
+        <div id="navbar">
+            <img src="./USDT/coollogo_com-6418786.png">            <nav>
+                <ul>
+                    <li><a href="indexss.html">الرئيسية</a></li>
+                    <li><a href="اتصل.html">اتصل بنا</a></li>
+                    <li><a href="عروض.html">عروض الاستثمار</a></li>
+                    <li><a href="السحب.html">السحب</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <section id="contact">
+            <h2>اتصل بنا</h2>
+            <form>
+                <label for="name">الاسم:</label>
+                <input type="text" id="name" name="name" required>
+                
+                <label for="email">البريد الإلكتروني:</label>
+                <input type="email" id="email" name="email" required>
+                
+                <label for="message">الرسالة:</label>
+                <textarea id="message" name="message" rows="6" required></textarea>
+                
+                <!-- رابط بريد إلكتروني -->
+                <a href="mailto:amastthmar@gmail.com?subject=استفسار من موقع الاستثمار&body=أرغب في الحصول على معلومات إضافية حول...">إرسال بريد إلكتروني</a>
+            </form>
+
+            
+
+
+        </section>
+    </main>
+  
+    
+    <footer>
+        <p>جميع الحقوق محفوظة &copy; 2024</p>
+    </footer>
+    <script>
+        $(document).ready(function() {
+            $('#contact-form').on('submit', function(e) {
+                e.preventDefault();
+                $.ajax({
+                    type: 'POST',
+                    url: 'contact.php',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        $('#form-messages').text(response);
+                    },
+                    error: function() {
+                        $('#form-messages').text('عذراً، حدث خطأ أثناء إرسال رسالتك.');
+                    }
+                });
+            });
+        });
+    </script>
+    
+</script>
+
+<script src="./script.js"></script>
+
+
+
+</body>
+</html>

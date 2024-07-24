@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة المسؤول</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        var users = JSON.parse(localStorage.getItem('users')) || {};
+        var withdrawalRequests = JSON.parse(localStorage.getItem('withdrawalRequests')) || [];
+        var withdrawals = JSON.parse(localStorage.getItem('withdrawals')) || [];
+
+        // Function to approve a withdrawal request
+        function approveWithdrawal(index) {
+            var withdrawal = withdrawals[index];
+            var user = users[withdrawal.user];
+
+            if (user && user.balance >= withdrawal.amount) {
+                user.balance -= withdrawal.amount;
+                withdrawal.status = 'approved';
+                saveUserState();
+                saveWithdrawals();
+                alert('تمت الموافقة على السحب. تم خصم المبلغ من حساب المستخدم.');
+                location.reload();
+            } else {
+                alert('رصيد المستخدم غير كافٍ للسحب.');
+            }
+        }
+
+        // Function to reject a withdrawal request
+        function rejectWithdrawal(index) {
+            withdrawals[index].status = 'rejected';
+            saveWithdrawals();
+            alert('تم رفض طلب السحب.');
+            location.reload();
+        }
+
+        // Simulate deposit function (for demonstration purposes)
+        function simulateDeposit(amount) {
+            // Here you can simulate an actual deposit process to your TRC-20 address
+            alert('تم تقديم طلب الإيداع بنجاح. يرجى تحويل المبلغ إلى عنوان TRC-20 المحدد.');
+        }
+
+        // Function to confirm deposit and update user's balance
+        function confirmDeposit(username, index) {
+            if (users[username] && users[username].pendingDeposits[index]) {
+                var deposit = users[username].pendingDeposits[index];
+                if (!deposit.confirmed) {
+                    users[username].balance += parseFloat(deposit.amount);
+                    deposit.confirmed = true;
+                    localStorage.setItem('users', JSON.stringify(users));
+                    var newBalance = users[username].balance.toFixed(2);
+                    alert('تم تأكيد الإيداع بنجاح. الرصيد الحالي للمستخدم: $' + newBalance);
+                    activateOffer(username); // Activate offer upon deposit confirmation
+                    loadPendingDeposits();
+                }
+            }
+        }
+
+        // Function to delete a pending deposit
+        function deleteDeposit(username, index) {
+            if (users[username] && users[username].pendingDeposits[index]) {
+                var deposit = users[username].pendingDeposits[index];
+                if (!deposit.confirmed) {
+                    users[username].pendingDeposits.splice(index, 1);
+                    localStorage.setItem('users', JSON.stringify(users));
+                    alert('تم حذف الإيداع بنجاح.');
+                    loadPendingDeposits();
+                } else {
+                    alert('لا يمكن حذف الإيداع المؤكد.');
+                }
+            }
+        }
+
+        // Function to activate offer for the user upon deposit confirmation
+        function activateOffer(username) {
+            // Assume you have a function or logic to activate the offer for the user
+            // For demonstration purposes, we will alert that the offer is activated
+            alert('تم تفعيل العرض للمستخدم: ' + username);
+        }
+
+        // Function to save user state to localStorage
+        function saveUserState() {
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        // Function to save withdrawals state to localStorage
+        function saveWithdrawals() {
+            localStorage.setItem('withdrawals', JSON.stringify(withdrawals));
+        }
+
+        // Function to view pending withdrawals
+        function viewPendingWithdrawals() {
+            var withdrawalsList = document.getElementById('withdrawals-list');
+            withdrawalsList.innerHTML = '';
+
+            withdrawals.forEach(function(withdrawal, index) {
+                var listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <p>المستخدم: ${withdrawal.user}</p>
+                    <p>المبلغ: $${withdrawal.amount.toFixed(2)}</p>
+                    <p>العنوان: ${withdrawal.address}</p>
+                    <p>الوقت: ${new Date(withdrawal.timestamp).toLocaleString()}</p>
+                    <p>الحالة: ${withdrawal.status}</p>
+                    ${withdrawal.status === 'pending' ? 
+                        `<button onclick="approveWithdrawal(${index})">موافقة</button>
+                         <button onclick="rejectWithdrawal(${index})">رفض</button>` 
+                        : ''}
+                `;
+                withdrawalsList.appendChild(listItem);
+            });
+        }
+
+        // Function to load pending deposits and display them
+        function loadPendingDeposits() {
+            var pendingDepositsContainer = document.getElementById('pending-deposits');
+            pendingDepositsContainer.innerHTML = '';
+
+            for (var username in users) {
+                if (users.hasOwnProperty(username)) {
+                    var user = users[username];
+                    if (user.pendingDeposits) {
+                        user.pendingDeposits.forEach(function(deposit, index) {
+                            if (!deposit.confirmed) {
+                                var depositElement = document.createElement('div');
+                                depositElement.className = 'pending-deposit';
+                                depositElement.innerHTML = `
+                                    <p>اسم المستخدم: ${username}</p>
+                                    <p>المبلغ: $${deposit.amount}</p>
+                                    <p>عنوان TRC-20: ${deposit.trc20Address}</p>
+                                    <button onclick="confirmDeposit('${username}', ${index})">تأكيد الإيداع</button>
+                                    <button onclick="deleteDeposit('${username}', ${index})">حذف الإيداع</button>
+                                `;
+                                pendingDepositsContainer.appendChild(depositElement);
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        // Function to load activated offers and display them
+        function loadActivatedOffers() {
+            var activatedOffersContainer = document.getElementById('activated-offers');
+            activatedOffersContainer.innerHTML = '';
+
+            for (var username in users) {
+                if (users.hasOwnProperty(username)) {
+                    var user = users[username];
+                    if (user.activatedPlans) {
+                        for (var plan in user.activatedPlans) {
+                            if (user.activatedPlans.hasOwnProperty(plan)) {
+                                var planData = user.activatedPlans[plan];
+                                var offerElement = document.createElement('div');
+                                offerElement.className = 'activated-offer';
+                                offerElement.innerHTML = `
+                                    <p>اسم المستخدم: ${username}</p>
+                                    <p>الخطة: ${plan}</p>
+                                    <p>السعر: $${planData.price.toFixed(2)}</p>
+                                    <p>الربح اليومي: $${planData.dailyProfit.toFixed(2)}</p>
+                                    <p>تاريخ البدء: ${new Date(planData.activatedAt).toLocaleDateString()}</p>
+                                    <p>تاريخ الانتهاء: ${new Date(planData.expiresAt).toLocaleDateString()}</p>
+                                `;
+                                activatedOffersContainer.appendChild(offerElement);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        window.onload = function() {
+            loadPendingDeposits();
+            loadActivatedOffers();
+            viewPendingWithdrawals();
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <h1>صفحة المسؤول</h1>
+    </header>
+
+    <main>
+        <section id="pending-deposits">
+            <h2>الإيداعات المعلقة</h2>
+            <!-- سيتم إدراج الإيداعات المعلقة هنا ديناميكيًا -->
+        </section>
+
+        <section id="admin-section">
+            <h2>مراجعة طلبات السحب</h2>
+            <ul id="withdrawals-list">
+                <!-- سيتم إدراج طلبات السحب هنا ديناميكيًا -->
+            </ul>
+        </section>
+
+        <section id="activated-offers">
+            <h2>العروض المفعلة</h2>
+            <!-- سيتم إدراج العروض المفعلة هنا ديناميكيًا -->
+        </section>
+    </main>
+
+
+    <script src="https://cdn.socket.io/4.3.1/socket.io.js"></script>
+<script>
+    var socket = io();
+
+    socket.on('connect', function() {
+        console.log('Connected to server');
+    });
+
+    socket.on('disconnect', function() {
+        console.log('Disconnected from server');
+    });
+
+    // يمكنك أيضًا أن تضيف معالجة لأحداث أخرى مثل 'message' لاستقبال رسائل أخرى من الخادم
+</script>
+
+
+
+
+
+
+
+
+    <footer>
+        <p>جميع الحقوق محفوظة &copy; 2024</p>
+    </footer>
+</body>
+</html>

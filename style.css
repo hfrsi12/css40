@@ -1,0 +1,269 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: "Quicksand", sans-serif ;
+}
+
+ul {
+    list-style: none;
+}
+
+/* Utility Classes */
+
+#navbar {
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(24, 90, 134, 0.411);
+}
+
+
+/* Header Start */
+
+#navbar img {
+    width: 82px;
+    margin-left: 100px;
+}
+
+
+#navbar ul li a:hover {
+    border-bottom: solid #e4b95b;
+    }
+
+ 
+/* Header End */
+
+/* About Start */
+
+  /* About End */
+
+
+  #hero {
+    background-color: #c96f8a;
+    color: rgb(73, 36, 36);
+    padding: 50px 30px;
+    text-align: center;
+}
+
+
+.plan {
+    background-color:#0f5249;
+    border: rgb(66, 214, 145) solid #e9cdcd;
+    padding:2ch;
+    margin: 1%;
+    display: inline-block;
+    width: 500px;
+    vertical-align: top;
+    text-align: center;
+
+   
+}
+
+
+body {
+    font-family: 'Cairo', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #d4abab;
+    color: #66e4e4;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+}
+
+
+nav ul li {
+    margin: 0 15px;
+}
+
+
+nav ul li a {
+    color: rgb(243, 232, 232);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+
+main {
+    padding: 70px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+section {
+    background-color: rgb(41, 138, 117);
+    border-radius: 30px;
+    box-shadow: 0 0 10px rgba(185, 77, 77, 0.575);
+    padding: 20px;
+    margin: 20px;
+    max-width: 600px;
+    width: 100%;
+    text-align: right;
+}
+
+
+h2 {
+    color: #dce4dc;
+    margin-bottom: 20px;
+}
+
+input[type="text"],
+input[type="email"],
+textarea,
+input[type="number"],
+input[type="password"],
+input[type="tel"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #996363;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #56e9d5;
+    color: rgb(83, 61, 61);
+    padding: 10px 30px;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    width: 30%;
+}
+
+
+button:hover {
+    background-color: #7a917a;
+}
+
+
+footer {
+    background-color: #6fbfee00;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+    position: fixed;
+    width: 100%;
+    bottom: 100;
+}
+
+/* تنسيق الإشعار */
+.notification {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.notification-content {
+    background-color: rgba(0, 0, 0, 0);
+    padding: 10px;
+    border-radius: 100000px;
+    text-align: center;
+    max-width: 300px;
+    width: 100%;
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+#main-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.plan {
+    width: 300px; /* قد تحتاج إلى تعديل هذا الحجم حسب تصميمك */
+    margin: 20px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    text-align: center;
+}
+
+
+
+
+
+
+
+
+
+#notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(153, 116, 116, 0.993);
+    border: 1px solid #bb3333;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+}
+
+#notification p {
+    margin: 0 0 10px;
+}
+
+#notification button {
+    margin-right: 10px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+body {
+    font-family: Arial, sans-serif;
+     
+    text-align: center;
+    padding: 50px;
+}

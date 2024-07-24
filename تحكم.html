@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة المسؤول</title>
+    <style>
+        /* أضف هنا تنسيقات CSS الخاصة بك */
+    </style>
+    <script>
+        async function loadWithdrawals() {
+            const response = await fetch('/withdrawals');
+            const withdrawals = await response.json();
+            const withdrawalsList = document.getElementById('withdrawals-list');
+            withdrawalsList.innerHTML = '';
+
+            withdrawals.forEach(function(withdrawal) {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <p>المستخدم: ${withdrawal.user}</p>
+                    <p>المبلغ: $${withdrawal.amount.toFixed(2)}</p>
+                    <p>العنوان: ${withdrawal.address}</p>
+                    <p>الوقت: ${new Date(withdrawal.timestamp).toLocaleString()}</p>
+                    <p>الحالة: ${withdrawal.status}</p>
+                    ${withdrawal.status === 'pending' ? 
+                        `<button onclick="approveWithdrawal(${withdrawal.id})">موافقة</button>
+                         <button onclick="rejectWithdrawal(${withdrawal.id})">رفض</button>` 
+                        : ''}
+                `;
+                withdrawalsList.appendChild(listItem);
+            });
+        }
+
+        async function approveWithdrawal(id) {
+            await fetch('/approve-withdrawal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
+            alert('تمت الموافقة على السحب.');
+            loadWithdrawals();
+        }
+
+        async function rejectWithdrawal(id) {
+            await fetch('/reject-withdrawal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
+            alert('تم رفض طلب السحب.');
+            loadWithdrawals();
+        }
+
+        window.onload = function() {
+            loadWithdrawals();
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <h1>صفحة المسؤول</h1>
+    </header>
+
+    <main>
+        <section id="withdrawals-section">
+            <h2>مراجعة طلبات السحب</h2>
+            <ul id="withdrawals-list">
+                <!-- سيتم إدراج طلبات السحب هنا ديناميكيًا -->
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>جميع الحقوق محفوظة &copy; 2024</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة السحب</title>
+    <link rel="stylesheet" href="./style.css">
+
+
+
+
+
+
+    <script>
+        $(document).ready(function() {
+            var currentUser = localStorage.getItem('currentUser');
+            if (currentUser) {
+                $.post('get_balance.php', function(response) {
+                    if (response.success) {
+                        $('#user-balance').text(response.balance.toFixed(2));
+                    } else {
+                        alert(response.message);
+                    }
+                }, 'json');
+            }
+
+            $('#withdraw-button').click(function() {
+                if (!currentUser) {
+                    alert('يجب عليك تسجيل الدخول لطلب السحب.');
+                    return;
+                }
+
+                var trc20Address = prompt('الرجاء إدخال عنوان TRC-20 الخاص بك:');
+                if (trc20Address) {
+                    var withdrawalAmount = parseFloat($('#user-balance').text());
+                    if (!isNaN(withdrawalAmount) && withdrawalAmount > 0) {
+                        var confirmation = confirm('هل أنت متأكد من طلب السحب بمبلغ $' + withdrawalAmount.toFixed(2) + ' إلى عنوان TRC-20: ' + trc20Address + '؟');
+                        if (confirmation) {
+                            $.post('withdraw.php', {
+                                trc20Address: trc20Address,
+                                withdrawalAmount: withdrawalAmount
+                            }, function(response) {
+                                alert(response.message);
+                                if (response.success) {
+                                    location.reload();
+                                }
+                            }, 'json');
+                        }
+                    } else {
+                        alert('يرجى إدخال مبلغ صالح للسحب.');
+                    }
+                } else {
+                    alert('الرجاء إدخال عنوان TRC-20 الخاص بك لاستكمال العملية.');
+                }
+            });
+        });
+    </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    <script>
+        var currentUser = localStorage.getItem('currentUser');
+        var users = JSON.parse(localStorage.getItem('users')) || {};
+        var withdrawals = JSON.parse(localStorage.getItem('withdrawals')) || [];
+
+        function withdrawFunds() {
+            if (!currentUser) {
+                alert('يجب عليك تسجيل الدخول لطلب السحب.');
+                return;
+            }
+
+            var user = users[currentUser];
+            var balance = user.balance;
+            if (balance > 0) {
+                var trc20Address = prompt('الرجاء إدخال عنوان TRC-20 الخاص بك:');
+                if (trc20Address) {
+                    var withdrawalAmount = parseFloat(balance);
+                    if (!isNaN(withdrawalAmount) && withdrawalAmount > 0) {
+                        var confirmation = confirm('هل أنت متأكد من طلب السحب بمبلغ $' + withdrawalAmount.toFixed(2) + ' إلى عنوان TRC-20: ' + trc20Address + '؟');
+                        if (confirmation) {
+                            alert('تم تقديم طلب السحب بنجاح. يتم الآن انتظار موافقة الإدارة.');
+
+                            // Add withdrawal request to local storage
+                            withdrawals.push({
+                                user: currentUser,
+                                amount: withdrawalAmount,
+                                address: trc20Address,
+                                timestamp: new Date().toISOString(),
+                                status: 'pending'
+                            });
+                            localStorage.setItem('withdrawals', JSON.stringify(withdrawals));
+
+                            // Update user balance (for demonstration purposes, not deducted until admin approval)
+                            // user.balance -= withdrawalAmount;
+                            saveUserState();
+                        }
+                    } else {
+                        alert('يرجى إدخال مبلغ صالح للسحب.');
+                    }
+                } else {
+                    alert('الرجاء إدخال عنوان TRC-20 الخاص بك لاستكمال العملية.');
+                }
+            } else {
+                alert('عذرًا، رصيدك الحالي غير كافٍ للسحب.');
+            }
+        }
+
+        function saveUserState() {
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        window.onload = function() {
+            var withdrawButton = document.getElementById('withdraw-button');
+            withdrawButton.onclick = withdrawFunds;
+            if (currentUser) {
+                var user = users[currentUser];
+                if (user) {
+                    document.getElementById('user-balance').textContent = user.balance.toFixed(2);
+                }
+            }
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <div id="navbar">
+            <img src="./USDT/coollogo_com-6418786.png" alt="لوجو الموقع">
+            <nav>
+                <ul>
+                    <li><a href="indexss.html">الرئيسية</a></li>
+                    <li><a href="اتصل.html">اتصل بنا</a></li>
+                    <li><a href="عروض.html">عروض الاستثمار</a></li>
+                    <li><a href="السحب.html">السحب</a></li>
+                    <li>الرصيد الحالي: <span id="user-balance">0.00</span> $</li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section id="withdraw-section">
+            <h2>السحب من الرصيد</h2>
+            <li>الرصيد الحالي: <span id="user-balance"></span> $</li>
+            <button id="withdraw-button">طلب السحب</button>
+        </section>
+    </main>
+</body>
+</script>
+
+<script src="./script.js"></script>
+
+
+</html>
